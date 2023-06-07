@@ -77,32 +77,15 @@ function fullText($) {
     var bodyTxt = $('body').prop('innerText').trim();
     bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, "");
 
-    bodyTxt = bodyTxt.replace(/\n/g,"");
+    // bodyTxt = bodyTxt.replace(/\n/g,"");
+    bodyTxt = bodyTxt.replace(/\n\s*\n/g, '\n');
+    bodyTxt += '"';
+    bodyTxt = '"'.concat(bodyTxt);
 
-    if (bodyTxt.length <= 32767) { // prevent length exception from xlsx
-        sheet.push([bodyTxt]);
-    } else { // break body text into pieces
-        var txtInSheet = bodyTxt.length;
-        while (txtInSheet > 32767) {
-            var start = bodyTxt.length - txtInSheet;
-            var end = start + 32767;
-            sheet.push([bodyTxt.slice(start,end)]);
-            txtInSheet = txtInSheet - 32767;
-        }
-        if (txtInSheet > 0) {
-            sheet.push([bodyTxt.slice(txtInSheet)]);
-        }
-    }
-    console.log(sheet)
-
-    const worksheet = xlsx.utils.aoa_to_sheet(sheet);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet);
-
-    xlsx.writeFile(workbook, "siteBody.xlsx", { compression: true });
-
-    // let csv = sheet.map(e => e.join(",")).join("\n");
-    // fs.writeFile('prueba.csv', csv, err => { if (err) console.log(err) });
+    let csv = sheet.map(e => e.join(",")).join("\n");
+    csv += ',\n'+bodyTxt;
+    console.log(csv)
+    fs.writeFile('prueba.csv', csv, err => { if (err) console.log(err) });
 
 }
 
