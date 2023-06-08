@@ -66,15 +66,17 @@ function arrayEquals(arr1,arr2) {
 }
 
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
+@url: URL of website to scrape; a string
 @$: Cheerio instance with HTML content
 @include: sole selector to include (string) */
-function fullText($,include) {
+function fullText($,url,include) {
     const sheet = [];
     sheet.push(['Plain Text','URLs'],['Links']);
 
     $('noscript').remove();
 
-    $('a').each((index, value) => {
+    var linkSearch = (include !== '') ? 'include a' : 'a';
+    $(linkSearch).each((index, value) => {
         var link = $(value).attr("href")
         if (typeof link === "string") { // removes spaces
             link = link.replaceAll('\n','');
@@ -86,6 +88,7 @@ function fullText($,include) {
     });
 
     $('<p>markerKey</p>').insertAfter('div'); // marker for later text processing
+    $('<p>markerKey</p>').insertAfter('span');
 
     sheet.push(['']);
     sheet.push(['Body Text']);
@@ -102,7 +105,7 @@ function fullText($,include) {
     let csv = sheet.map(e => e.join(",")).join("\n");
     csv += ',\n'+bodyTxt;
     console.log(csv)
-    fs.writeFile('prueba.csv', csv, err => { if (err) console.log(err) });
+    fs.writeFile(url+'.csv', csv, err => { if (err) console.log(err) });
 
 }
 
@@ -125,7 +128,10 @@ function scrape(url,include='',exclude=['']) {
                 $(exclude[i]).remove();
             }
         }
-        fullText($,include);
+        start = url.indexOf('.');
+        end = url.indexOf('.',start+1);
+        url = url.slice(start+1,end);
+        fullText($,url,include);
         await browser.close();
     })();
 }
@@ -149,6 +155,18 @@ function scrape(url,include='',exclude=['']) {
 
 // scrape('https://www.tcs.com/','',['.py-0 ', '.navbar_links'])
 
-// scrape('https://www.capgemini.com','',['.header-top ', '.header-bottom ', '#menu-main-'])
+// scrape('https://www.capgemini.com','',['.header-nav ', '.header-bottom'])
 
-scrape('https://www.cognizant.com','',['.position-relative ', '.cog-header__ribbon-menu'])
+// scrape('https://www.cognizant.com','',['.cog-header__main-menu-item ', '.bg-gray-lighter ', '.cog-header__ribbon-menu'])
+
+// scrape('https://www.salesforce.com/mx/?ir=1','',['.mobile-pl-24']);
+
+// scrape('https://www.technologyreview.com/','.heroSection__wrapper--1e38a');
+
+// scrape('https://www.economist.com/','#content')
+
+// scrape('https://www.omaze.com/','.oz-homepage')
+
+// scrape('https://www.colourpop.com/','.owl-drag')
+
+scrape('https://www.colourpop.com/collections/jelly-much-shadow','.listing')
