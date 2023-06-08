@@ -54,11 +54,24 @@ function site($, nav, footer, body) {
 
 }
 
+/* Compares two arrays, returning true if their contents are the same.
+@arr1: string[]
+@arr2: string[] */
+function arrayEquals(arr1,arr2) {
+    if (arr1.length !== arr2.length) return false;
+    for (let i = 0; i<arr1.length; i++) {
+        if (arr1[i] !== arr2[i]) return false;
+    }
+    return true;
+}
+
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
 @$: Cheerio instance with HTML content */
 function fullText($) {
     const sheet = [];
     sheet.push(['Plain Text','URLs'],['Links']);
+
+    $('noscript').remove();
 
     $('a').each((index, value) => {
         var link = $(value).attr("href")
@@ -71,15 +84,18 @@ function fullText($) {
         }
     });
 
+    $('<p>markerKey</p>').insertAfter('div'); // marker for later text processing
+
     sheet.push(['']);
     sheet.push(['Body Text']);
 
     var bodyTxt = $('body').prop('innerText').trim();
-    bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, "");
 
-    // bodyTxt = bodyTxt.replace(/\n/g,"");
-    bodyTxt = bodyTxt.replace(/\n\s*\n/g, '\n');
-    bodyTxt += '"';
+    bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, ""); // remove lingering HTML tags
+    bodyTxt = bodyTxt.replace(/markerKey\s*markerKey/g, '');
+    bodyTxt = bodyTxt.replace(/\n\s*\n/g, '\n'); // replace multiple line breaks with one
+    bodyTxt = bodyTxt.replace(/markerKey/g,'\n'); // separate divs
+    bodyTxt += '"'; // quotes to preserve commas in body text
     bodyTxt = '"'.concat(bodyTxt);
 
     let csv = sheet.map(e => e.join(",")).join("\n");
@@ -89,64 +105,39 @@ function fullText($) {
 
 }
 
-// var url = 'https://www.design2dev.com/studio/';
-// (async() => {
-//     const browser = await puppet.launch();
-//     const page = await browser.newPage();
-//     await page.goto(url, {waitUntil: 'domcontentloaded'});
-//
-//     var html = await page.content();
-//     const $ = cheerio.load(html);
-//     site($, url, '.site-header', '.site-share', '.site-content')
-//     await browser.close();
-// })();
+/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` and including only the selectors in `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
+@url: URL of website to scrape; a string
+@include: array of selectors to include (string[])
+@exclude: array of selectors to exclude (string[]) */
+function scrape(url,include=[''],exclude=['']) {
+    (async() => {
+        const browser = await puppet.launch();
+        const page = await browser.newPage();
+        await page.setJavaScriptEnabled(true);
+        await page.goto(url, {waitUntil: 'load'});
 
-// var url = 'https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15';
-// (async() => {
-//     const browser = await puppet.launch();
-//     const page = await browser.newPage();
-//     await page.goto(url, {waitUntil: 'domcontentloaded'});
-//
-//     var html = await page.content();
-//     const $ = cheerio.load(html);
-//     site($, url, '#navbar-main', '#search', '#navFooter');
-//     await browser.close();
-// })();
+        var html = await page.content();
+        const $ = cheerio.load(html);
+        if (!arrayEquals(exclude,[''])) {
+            for (let i = 0; i < exclude.length; i++) {
+                $(exclude[i]).remove();
+            }
+        }
+        if (!arrayEquals(include,[''])) {
+            $('body').each(function (i, elem) {
+                if (!include.includes(elem.name)) {
+                    $(elem.name).remove();
+                }
+            });
+        }
+        fullText($);
+        await browser.close();
+    })();
+}
 
-// var url = 'https://www.ibm.com/products/cloud-pak-for-watson-aiops';
-// (async() => {
-//     const browser = await puppet.launch();
-//     const page = await browser.newPage();
-//     await page.goto(url, {waitUntil: 'domcontentloaded'});
-//
-//     var html = await page.content();
-//     const $ = cheerio.load(html);
-//     site($, url, 'dds-megamenu-top-nav-menu', '.ibm-footer-corporate-links', '#ibm-content-wrapper')
-//     await browser.close();
-// })();
+// const divs = [".aem-GridColumn--default--12 ", ".cmp-global-header__language-selector ", ".cmp-global-header__primary-nav",".cmp-global-header__language-options"];
+// scrape('https://www.accenture.com/us-en/insights/generative-ai',divs);
 
-var url = 'https://www.ibm.com/products/cloud-pak-for-watson-aiops';
-(async() => {
-    const browser = await puppet.launch();
-    const page = await browser.newPage();
-    await page.goto(url, {waitUntil: 'load'});
+scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15',[''],["#navFooter ", ".navFooterDescLine ", ".nav-a ", "#nav-hamburger-menu ", "#nav-flyout-accountList"]);
 
-    var html = await page.content();
-    const $ = cheerio.load(html);
-    $('#ibm-footer-module-links , #ibm-footer , #ibm-duo-epp-l1__menu').remove();
-    fullText($);
-    await browser.close();
-})();
-
-// var url = 'https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15';
-// (async() => {
-//     const browser = await puppet.launch();
-//     const page = await browser.newPage();
-//     await page.goto(url, {waitUntil: 'load'});
-//
-//     var html = await page.content();
-//     const $ = cheerio.load(html);
-//     // $('#ibm-footer-module-links, dds-top-nav, #ibm-footer').remove();
-//     fullText($);
-//     await browser.close();
-// })();
+scrape('https://medium.com/analytics-vidhya/classification-model-on-custom-dataset-using-tensorflow-js-9458da5f2301')
