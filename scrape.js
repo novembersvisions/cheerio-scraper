@@ -66,8 +66,9 @@ function arrayEquals(arr1,arr2) {
 }
 
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
-@$: Cheerio instance with HTML content */
-function fullText($) {
+@$: Cheerio instance with HTML content
+@include: sole selector to include (string) */
+function fullText($,include) {
     const sheet = [];
     sheet.push(['Plain Text','URLs'],['Links']);
 
@@ -89,7 +90,7 @@ function fullText($) {
     sheet.push(['']);
     sheet.push(['Body Text']);
 
-    var bodyTxt = $('body').prop('innerText').trim();
+    var bodyTxt = (include !== '') ? $(include).prop('innerText').trim() : $('body').prop('innerText').trim();
 
     bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, ""); // remove lingering HTML tags
     bodyTxt = bodyTxt.replace(/markerKey\s*markerKey/g, '');
@@ -105,11 +106,11 @@ function fullText($) {
 
 }
 
-/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` and including only the selectors in `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
+/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` or including only the selector `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
 @url: URL of website to scrape; a string
-@include: array of selectors to include (string[])
+@include: sole selector to include (string)
 @exclude: array of selectors to exclude (string[]) */
-function scrape(url,include=[''],exclude=['']) {
+function scrape(url,include='',exclude=['']) {
     (async() => {
         const browser = await puppet.launch();
         const page = await browser.newPage();
@@ -123,14 +124,7 @@ function scrape(url,include=[''],exclude=['']) {
                 $(exclude[i]).remove();
             }
         }
-        if (!arrayEquals(include,[''])) {
-            $('body').each(function (i, elem) {
-                if (!include.includes(elem.name)) {
-                    $(elem.name).remove();
-                }
-            });
-        }
-        fullText($);
+        fullText($,include);
         await browser.close();
     })();
 }
@@ -138,6 +132,8 @@ function scrape(url,include=[''],exclude=['']) {
 // const divs = [".aem-GridColumn--default--12 ", ".cmp-global-header__language-selector ", ".cmp-global-header__primary-nav",".cmp-global-header__language-options"];
 // scrape('https://www.accenture.com/us-en/insights/generative-ai',divs);
 
-scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15',[''],["#navFooter ", ".navFooterDescLine ", ".nav-a ", "#nav-hamburger-menu ", "#nav-flyout-accountList"]);
+// scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15',"#navFooter", [""]);
 
-scrape('https://medium.com/analytics-vidhya/classification-model-on-custom-dataset-using-tensorflow-js-9458da5f2301')
+scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15');
+
+// scrape('https://medium.com/analytics-vidhya/classification-model-on-custom-dataset-using-tensorflow-js-9458da5f2301')
