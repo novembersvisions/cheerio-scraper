@@ -115,6 +115,7 @@ function scrape(url,include='',exclude=['']) {
         const browser = await puppet.launch();
         const page = await browser.newPage();
         await page.setJavaScriptEnabled(true);
+        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36');
         await page.goto(url, {waitUntil: 'load'});
 
         var html = await page.content();
@@ -134,6 +135,20 @@ function scrape(url,include='',exclude=['']) {
 
 // scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15',"#navFooter", [""]);
 
-scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15');
+// scrape('https://www.amazon.com/s?i=specialty-aps&bbn=16225009011&rh=n%3A%2116225009011%2Cn%3A7926841011&_encoding=UTF8&content-id=amzn1.sym.85f810d5-ce12-4423-a10d-231c7df04c87&painterId=billboard-card&pd_rd_r=977ec2fa-dffe-4eeb-ba91-ba21e7071502&pd_rd_w=JrUMU&pd_rd_wg=ElOQ4&pf_rd_p=85f810d5-ce12-4423-a10d-231c7df04c87&pf_rd_r=Y7NY9AZ45QHDCE8P3AEM&ref=nav_em__nav_desktop_sa_intl_video_game_consoles_and_accessories_0_2_5_15');
 
 // scrape('https://medium.com/analytics-vidhya/classification-model-on-custom-dataset-using-tensorflow-js-9458da5f2301')
+
+// scrape('https://www2.deloitte.com','',['#header ', '#cmp-advanced-search'])
+
+// scrape('https://www.pwc.com/','',['.mod__header-v2 ', '#onetrust-accept-btn-handler ', '.slim-navigation']);
+
+// scrape('https://www.mckinsey.com/','',['#global-header ', '.show-nav ', '.primary-nav-list_H4L9v']);
+
+// scrape('https://www.bain.com','',['.utility-navigation__wrapper ', '#nav-wrap'])
+
+// scrape('https://www.tcs.com/','',['.py-0 ', '.navbar_links'])
+
+// scrape('https://www.capgemini.com','',['.header-top ', '.header-bottom ', '#menu-main-'])
+
+scrape('https://www.cognizant.com','',['.position-relative ', '.cog-header__ribbon-menu'])
