@@ -1,5 +1,4 @@
 const cheerio = require('cheerio');
-const axios = require('axios');
 const puppet = require('puppeteer');
 const xlsx = require('xlsx');
 const fs = require('fs');
@@ -82,8 +81,12 @@ function fullText($,url,include) {
             link = link.replaceAll('\n','');
         }
         var newText = $(value).text().replaceAll('\n','');
+        newText = newText.trim();
+        newText = newText.replaceAll('"',"'");
+        newText += '"'; // quotes to preserve commas in body text
+        newText = '"'.concat(newText);
         if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
-            sheet.push([newText.trim(), link]); // text/links into sheet array
+            sheet.push([newText, link]); // text/links into sheet array
         }
     });
 
@@ -99,6 +102,7 @@ function fullText($,url,include) {
     bodyTxt = bodyTxt.replace(/markerKey\s*markerKey/g, '');
     bodyTxt = bodyTxt.replace(/\n\s*\n/g, '\n'); // replace multiple line breaks with one
     bodyTxt = bodyTxt.replace(/markerKey/g,'\n'); // separate divs
+    bodyTxt = bodyTxt.replaceAll('"',"'");
     bodyTxt += '"'; // quotes to preserve commas in body text
     bodyTxt = '"'.concat(bodyTxt);
 
@@ -119,7 +123,7 @@ function scrape(url,include='',exclude=['']) {
         const page = await browser.newPage();
         await page.setJavaScriptEnabled(true);
         await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36');
-        await page.goto(url, {waitUntil: 'load'});
+        await page.goto(url, {waitUntil: 'networkidle0'});
 
         var html = await page.content();
         const $ = cheerio.load(html);
@@ -128,8 +132,9 @@ function scrape(url,include='',exclude=['']) {
                 $(exclude[i]).remove();
             }
         }
-        start = url.indexOf('.');
-        end = url.indexOf('.',start+1);
+
+        start = (url.includes('https://www.')) ? url.indexOf('.') : url.indexOf('//') + 1
+            end = url.indexOf('.', start + 1);
         url = url.slice(start+1,end);
         fullText($,url,include);
         await browser.close();
@@ -167,6 +172,10 @@ function scrape(url,include='',exclude=['']) {
 
 // scrape('https://www.omaze.com/','.oz-homepage')
 
-// scrape('https://www.colourpop.com/','.owl-drag')
+// scrape('https://colourpop.com/','.owl-drag')
 
-scrape('https://www.colourpop.com/collections/jelly-much-shadow','.listing')
+// scrape('https://www.colourpop.com/collections/jelly-much-shadow','.listing')
+
+// scrape('https://www.finops.org/introduction/what-is-finops/')
+
+scrape('https://www.cognizant.com/us/en','',['.position-relative ', '.align-items-center ', '.cog-header__ribbon-menu'])
