@@ -30,10 +30,15 @@ function dNameLink($) {
     fs.writeFile('dribbble.csv', csv, err => { if (err) console.log(err) });
 }
 
-/* Scrapes a dribbble.com Cheerio instance (with a specific user/agency "about" page), generating a spreadsheet with name, website, members, and email
+/* Scrapes a dribbble.com Cheerio instance (with a specific agency "about" page), generating a spreadsheet with name, website, members, and email
 @$: Cheerio instance with HTML content */
-function uNameLink($) {
+function uNameLink($,url) {
     const sheet = [];
+    sheet.push(['Agency Name']);
+    var name = $('.masthead-content h1').text();
+    sheet.push([name]);
+    sheet.push([' ']);
+
     sheet.push(['Members']);
 
     $('.team-members-list a').each((index, value) => {
@@ -41,12 +46,9 @@ function uNameLink($) {
         if (typeof link === "string") { // removes spaces
             link = link.replaceAll('\n','');
         }
-        // var newText = $(value).text().replaceAll('\n','');
-        // newText = newText.trim();
-        // newText = newText.replaceAll('"',"'");
-        // newText += '"'; // quotes to preserve commas in body text
-        // newText = '"'.concat(newText);
+
         if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
+            link = 'https://dribbble.com'.concat(link);
             sheet.push([link]); // text/links into sheet array
         }
     });
@@ -60,11 +62,20 @@ function uNameLink($) {
         while (main.charAt(start).match(/[a-z]/i)) {
             start = start-1; // find where email starts
         }
-        let end = main.indexOf(' ', at+1);
+        let end = main.indexOf('.',start);
+        while (main.charAt(end).match(/[A-Za-z_.-]/i)) {
+            // console.log(main.charAt(end))
+            end = end+1; // find where email ends
+        }
         let email = main.slice(start+1,end);
+        sheet.push([' ']);
         sheet.push(['Email']);
         sheet.push([email]);
     }
+    sheet.push([' ']);
+    sheet.push(['Website']);
+    let website = $('.profile-social-section li').first().text().trim();
+    sheet.push([website]);
 
     let csv = sheet.map(e => e.join(",")).join("\n");
     console.log(csv)
@@ -104,10 +115,10 @@ function dScrape(url,user=true) {
         }
         var html = await page.content();
         const $ = cheerio.load(html);
-        (user) ? uNameLink($) : dNameLink($);
+        (user) ? uNameLink($,url) : dNameLink($);
         await browser.close();
     })();
 }
 
 // dScrape('https://dribbble.com/designers?tab=results&search%5BbookmarkCount%5D=0&search%5BworkType%5D=freelance&search%5BdesignerType%5D%5B%5D=agency&search%5BsearchUid%5D=9921125-1686587763095',false);
-dScrape('https://dribbble.com/Tubik/about');
+dScrape('https://dribbble.com/boldmonkey/about');
