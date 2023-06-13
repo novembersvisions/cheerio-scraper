@@ -34,24 +34,9 @@ function dNameLink($) {
 @$: Cheerio instance with HTML content */
 function uNameLink($,url) {
     const sheet = [];
-    sheet.push(['Agency Name']);
+    sheet.push(['Agency Name','Email','Website','Members']);
     var name = $('.masthead-content h1').text();
-    sheet.push([name]);
-    sheet.push([' ']);
-
-    sheet.push(['Members']);
-
-    $('.team-members-list a').each((index, value) => {
-        var link = $(value).attr("href")
-        if (typeof link === "string") { // removes spaces
-            link = link.replaceAll('\n','');
-        }
-
-        if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
-            link = 'https://dribbble.com'.concat(link);
-            sheet.push([link]); // text/links into sheet array
-        }
-    });
+    let sheetStr = name+',';
 
     let main = $('#main').text();
     if (main.includes('@')) {
@@ -68,18 +53,31 @@ function uNameLink($,url) {
             end = end+1; // find where email ends
         }
         let email = main.slice(start+1,end);
-        sheet.push([' ']);
-        sheet.push(['Email']);
-        sheet.push([email]);
+        sheetStr += [email];
+        sheetStr += ',';
     }
-    sheet.push([' ']);
-    sheet.push(['Website']);
+
     let website = $('.profile-social-section li').first().text().trim();
-    sheet.push([website]);
+    sheetStr += website;
+
+    $('.team-members-list a').each((index, value) => {
+        var link = $(value).attr("href")
+        if (typeof link === "string") { // removes spaces
+            link = link.replaceAll('\n','');
+        }
+
+        if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
+            link = 'https://dribbble.com'.concat(link);
+            (index === 0) ? sheetStr += [','+link+'\n'] : sheetStr += [',,,'+link+'\n'];
+        }
+    });
+
+    sheet.push([sheetStr])
 
     let csv = sheet.map(e => e.join(",")).join("\n");
     console.log(csv)
-    fs.writeFile('userDribbble.csv', csv, err => { if (err) console.log(err) });
+    name = name.replace('/','|');
+    fs.writeFile('csv/'+name+'.csv', csv, err => { if (err) console.log(err) });
 
 }
 
@@ -121,4 +119,22 @@ function dScrape(url,user=true) {
 }
 
 // dScrape('https://dribbble.com/designers?tab=results&search%5BbookmarkCount%5D=0&search%5BworkType%5D=freelance&search%5BdesignerType%5D%5B%5D=agency&search%5BsearchUid%5D=9921125-1686587763095',false);
-dScrape('https://dribbble.com/boldmonkey/about');
+
+
+var agencies = fs.readFileSync('./agencies.csv').toString().split("\n");
+
+async function agencyLoop() {
+    for (var i = 0; i < agencies.length; i++) {
+        console.log('Starting scrape');
+        await timer(4000);
+        dScrape(agencies[i]);
+    }
+}
+agencyLoop();
+function timer(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// for (let i in agencies) {
+//     console.log('Starting scrape');
+//     dScrape(agencies[i]);
+//     wait(1000);
+// }
