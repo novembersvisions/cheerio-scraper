@@ -83,8 +83,8 @@ function scrape(url,include='',exclude=['']) {
             }
         }
 
-        start = (url.includes('https://www.')) ? url.indexOf('.') : url.indexOf('//') + 1
-            end = url.indexOf('.', start + 1);
+        let start = (url.includes('https://www.')) ? url.indexOf('.') : url.indexOf('//') + 1
+        let end = url.indexOf('.', start + 1);
         url = url.slice(start+1,end);
         fullText($,url,include);
         await browser.close();
