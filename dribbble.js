@@ -2,7 +2,6 @@ const cheerio = require('cheerio');
 const puppet = require('puppeteer');
 const fs = require('fs');
 const { scrollPageToBottom } = require('puppeteer-autoscroll-down');
-const {loadGraphModel} = require("@tensorflow/tfjs");
 
 /* Scrapes a dribbble.com Cheerio instance, generating a spreadsheet with name text content and links
 @$: Cheerio instance with HTML content */
@@ -30,60 +29,117 @@ function dNameLink($) {
     fs.writeFile('dribbble.csv', csv, err => { if (err) console.log(err) });
 }
 
-/* Scrapes a dribbble.com Cheerio instance (with a specific agency "about" page), generating a spreadsheet with name, website, members, and email
-@$: Cheerio instance with HTML content */
-function uNameLink($,url) {
+/* Scrapes a dribbble.com Cheerio instance (with a specific user or agency "about" page), generating a spreadsheet with name, website, members, and email
+@$: Cheerio instance with HTML content
+@user: whether the website is a user page; boolean */
+function uNameLink($, user) {
     const sheet = [];
-    sheet.push(['Agency Name','Email','Website','Members']);
+    (!user) ? sheet.push(['Agency Name','Email','Website','Members']) : sheet.push(['First Name','Email','Website','Role','Location','LinkedIn','Agency Name','Agency URL'])
+
+    // Name
     var name = $('.masthead-content h1').text();
+    if (user) {
+        let spacePos = name.indexOf(' ');
+        if (spacePos !== -1) name = name.slice(0,spacePos);
+    }
     let sheetStr = name+',';
 
+    // Email
     let main = $('#main').text();
     if (main.includes('@')) {
         var start = main.indexOf('@');
         // console.log(main.charAt(start-3));
         let at = start;
         start = start-1;
-        while (main.charAt(start).match(/[a-z]/i)) {
+        while (main.charAt(start).match(/[\w.-]/i)) {
             start = start-1; // find where email starts
         }
-        let end = main.indexOf('.',start);
+        let end = main.indexOf('.',at);
         while (main.charAt(end).match(/[A-Za-z_.-]/i)) {
             // console.log(main.charAt(end))
             end = end+1; // find where email ends
         }
         let email = main.slice(start+1,end);
-        sheetStr += [email];
+        if (email.includes('.') && !email.includes(' ')) {
+            sheetStr += [email];
+            sheetStr += ',';
+        }
+        else {
+            sheetStr += [''];
+            sheetStr += ',';
+        }
+    }
+    else {
+        sheetStr += [''];
         sheetStr += ',';
     }
 
+    // Website
     let website = $('.profile-social-section li').first().text().trim();
-    sheetStr += website;
+    if (website.includes('.')) sheetStr += website;
 
-    $('.team-members-list a').each((index, value) => {
-        var link = $(value).attr("href")
-        if (typeof link === "string") { // removes spaces
-            link = link.replaceAll('\n','');
+    // Members (for agency pages only)
+    if (!user) {
+        $('.team-members-list a').each((index, value) => {
+            var link = $(value).attr("href")
+            if (typeof link === "string") { // removes spaces
+                link = link.replaceAll('\n', '');
+            }
+
+            if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
+                link = 'https://dribbble.com'.concat(link);
+                (index === 0) ? sheetStr += [',' + link + '\n'] : sheetStr += [',,,' + link + '\n'];
+            }
+        });
+    }
+
+    // For user pages only
+    let agency;
+    if (user) {
+        // Role
+        let role = $('.masthead-profile-specializations').text().trim();
+        if (role === '') role = $('.bio-text').text().trim();
+        sheetStr += ',"'+role+'"';
+
+        // Location
+        let location = $('.masthead-profile-locality').text().trim();
+        sheetStr += ',"'+location+'"';
+
+        // LinkedIn
+        let social = $('.profile-social-section li a');
+        let linkedin;
+        social.each((index, value) => {
+            let link = $(value).attr("href")
+            if (link.includes('linkedin')) linkedin = link;
+        });
+        if (linkedin !== undefined) {
+            sheetStr += ',https://dribbble.com'+linkedin;
+        } else {
+            sheetStr += ',';
         }
 
-        if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
-            link = 'https://dribbble.com'.concat(link);
-            (index === 0) ? sheetStr += [','+link+'\n'] : sheetStr += [',,,'+link+'\n'];
-        }
-    });
+        // Agency
+        agency = $('.profile-teams-section a');
+
+        sheetStr += ',"'+$('.profile-teams-section a span').text().trim()+'",';
+        sheetStr += 'https://dribbble.com'+agency.attr("href");
+
+    }
 
     sheet.push([sheetStr])
 
     let csv = sheet.map(e => e.join(",")).join("\n");
     console.log(csv)
-    name = name.replace('/','|');
-    fs.writeFile('csv/'+name+'.csv', csv, err => { if (err) console.log(err) });
+    agency = $('.profile-teams-section a span').text().trim();
+    agency = agency.replaceAll('/','|');
+    fs.writeFile('csv/'+name+'_'+agency+'.csv', csv, err => { if (err) console.log(err) });
 
 }
 
 /* Scrapes the text content of a dribbble URL `url` using Puppeteer.
+* @agency: whether the page being scraped is an agency page; boolean
 * @user: whether the page being scraped is a user page; boolean */
-function dScrape(url,user=true) {
+function dScrape(url,agency=false,user=true) {
     (async() => {
         const browser = await puppet.launch({headless: user});
         const page = await browser.newPage();
@@ -92,15 +148,24 @@ function dScrape(url,user=true) {
         const data = fs.readFileSync('./cookies.json',
             { encoding: 'utf8' });
         const cookies = JSON.parse(data);
+        await page.deleteCookie(...await page.cookies());
         await page.setCookie(...cookies);
+        // page.setDefaultNavigationTimeout(0);
+        // page.setDefaultTimeout(0);
 
-        await page.goto(url, {waitUntil: 'load'});
+        await page.goto(url, {waitUntil: 'load', timeout: 10000}).then(() => {
+            console.log('success')
+        }).catch((res) => {
+            console.log('fails', res)
+        })
+        // await page.goto(url, {waitUntil: 'load', timeout: 0});
+        // page.setDefaultTimeout(0);
 
-        if (!user) {
+        if (!user && !agency) {
             let loadSeconds = 0;
 
-            while (loadSeconds < 6) {
-                await scrollPageToBottom(page, {size: 250, delay: 500});
+            while (loadSeconds < 4) {
+                await scrollPageToBottom(page, {size: 250, delay: 1000});
                 loadSeconds += 1;
                 console.log(loadSeconds)
             }
@@ -113,28 +178,56 @@ function dScrape(url,user=true) {
         }
         var html = await page.content();
         const $ = cheerio.load(html);
-        (user) ? uNameLink($,url) : dNameLink($);
+        (agency || user) ? uNameLink($, user) : dNameLink($);
         await browser.close();
     })();
 }
 
-// dScrape('https://dribbble.com/designers?tab=results&search%5BbookmarkCount%5D=0&search%5BworkType%5D=freelance&search%5BdesignerType%5D%5B%5D=agency&search%5BsearchUid%5D=9921125-1686587763095',false);
-
-
-var agencies = fs.readFileSync('./agencies.csv').toString().split("\n");
-
+/* Loops through URLs in agencies.csv and returns CSV files */
 async function agencyLoop() {
-    for (var i = 0; i < agencies.length; i++) {
+    const agencies = fs.readFileSync('./agencies.csv').toString().split("\n");
+    for (var i = 1040; i < agencies.length; i++) {
         console.log('Starting scrape');
-        await timer(4000);
+        await timer(4100);
         dScrape(agencies[i]);
     }
 }
-agencyLoop();
+
 function timer(ms) { return new Promise(res => setTimeout(res, ms)); }
 
-// for (let i in agencies) {
-//     console.log('Starting scrape');
-//     dScrape(agencies[i]);
-//     wait(1000);
-// }
+/* Combines CSV files in the directory `directory`
+* @directory: string formatted as ./csv/ */
+function combineCsv(directory) {
+    var files = fs.readdirSync(directory);
+    let sheet = fs.readFileSync(directory+files[0]).toString();
+
+    for (let i = 1; i < files.length; i++) {
+        sheet += fs.readFileSync(directory+files[i]).toString();
+        console.log(sheet)
+    }
+
+    fs.writeFile('userResults.csv', sheet, err => {
+        if (err) console.log(err)
+    });
+}
+
+/* Loops through user pages in agencyResults.csv and returns CSV files */
+async function userLoop() {
+    let sheet = fs.readFileSync('./agencyResults.csv').toString().split("\n");
+    sheet = sheet.map(item => [...item.split(',')] );
+
+    var col = sheet.map(d => d[3]);
+
+    for (let i=3398;i<col.length;i++) {
+        if (col[i].trim() !== 'Members' && col[i] !== '' && !col[i].includes('members')) {
+            console.log(i)
+            console.log(col[i])
+            await timer(4000);
+            dScrape(col[i]+'/about')
+        }
+    }
+}
+
+// userLoop()
+
+dScrape('https://dribbble.com/designers?tab=results&search%5Bkeywords%5D=web&search%5Blocation%5D=United%20States&search%5BdesignerType%5D%5B%5D=freelance&search%5BworkType%5D=freelance&search%5BbookmarkCount%5D=0&search%5BsearchUid%5D=66646-1686769687845',false,false)
