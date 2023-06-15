@@ -20,7 +20,7 @@ function dNameLink($) {
         newText += '"'; // quotes to preserve commas in body text
         newText = '"'.concat(newText);
         if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
-            sheet.push([newText, link]); // text/links into sheet array
+            sheet.push([newText, 'https://dribbble.com'+link+'/about']); // text/links into sheet array
         }
     });
 
@@ -141,7 +141,7 @@ function uNameLink($, user) {
 * @user: whether the page being scraped is a user page; boolean */
 function dScrape(url,agency=false,user=true) {
     (async() => {
-        const browser = await puppet.launch({headless: user});
+        const browser = await puppet.launch({headless: user, protocolTimeout: 0});
         const page = await browser.newPage();
         await page.setJavaScriptEnabled(true);
         await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36');
@@ -150,24 +150,21 @@ function dScrape(url,agency=false,user=true) {
         const cookies = JSON.parse(data);
         await page.deleteCookie(...await page.cookies());
         await page.setCookie(...cookies);
-        // page.setDefaultNavigationTimeout(0);
-        // page.setDefaultTimeout(0);
-
-        await page.goto(url, {waitUntil: 'load', timeout: 10000}).then(() => {
-            console.log('success')
-        }).catch((res) => {
-            console.log('fails', res)
-        })
-        // await page.goto(url, {waitUntil: 'load', timeout: 0});
-        // page.setDefaultTimeout(0);
+        
+        await page.goto(url, {waitUntil: 'load'});
 
         if (!user && !agency) {
-            let loadSeconds = 0;
+            // let loadSeconds = 0;
+            let loadAvailable = true
 
-            while (loadSeconds < 4) {
+            while (loadAvailable) {
                 await scrollPageToBottom(page, {size: 250, delay: 1000});
-                loadSeconds += 1;
-                console.log(loadSeconds)
+                process.stdin.setRawMode(true);
+                process.stdin.resume();
+                process.stdin.once('data', function () {
+                    console.log('please wait, generating spreadsheet...');
+                    loadAvailable = false;
+                });
             }
             // while (loadAvailable) {
             //     await scrollPageToBottom(page, {size: 500, delay: 30, stepsLimit: 100000});
