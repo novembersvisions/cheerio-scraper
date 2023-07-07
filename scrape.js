@@ -17,28 +17,36 @@ function arrayEquals(arr1,arr2) {
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
 @url: URL of website to scrape; a string
 @$: Cheerio instance with HTML content
-@include: sole selector to include (string) */
+@include: array of selectors to exclude (string[]) */
 function fullText($,url,include) {
     const sheet = [];
     sheet.push(['Plain Text','URLs'],['Links']);
 
     $('noscript').remove();
 
-    var linkSearch = (include !== '') ? 'include a' : 'a';
-    $(linkSearch).each((index, value) => {
-        var link = $(value).attr("href")
-        if (typeof link === "string") { // removes spaces
-            link = link.replaceAll('\n','');
+    var linkSearches = [];
+    if (include !== ['']) {
+        for (let i=0; i<include.length;i++) {
+            linkSearches.push(include[i]+' a');
+            linkSearches.push(include[i]);
         }
-        var newText = $(value).text().replaceAll('\n','');
-        newText = newText.trim();
-        newText = newText.replaceAll('"',"'");
-        newText += '"'; // quotes to preserve commas in body text
-        newText = '"'.concat(newText);
-        if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
-            sheet.push([newText, link]); // text/links into sheet array
-        }
-    });
+    } else linkSearches.push('a');
+
+    for (let i=0; i<linkSearches.length;i++) {
+        $(linkSearches[i]).each((index, value) => {
+            var link = $(value).attr("href")
+            if (typeof link === "string") { // removes spaces
+                link = link.replaceAll('\n', '');
+            }
+            var newText = $(value).text().replaceAll('\n', '');
+            newText = newText.trim();
+            newText = newText.replaceAll('"', "'");
+            newText += '"'; // quotes to preserve commas in body text
+            newText = '"'.concat(newText);
+            if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
+                sheet.push([newText, link]); // text/links into sheet array
+            }});
+    }
 
     $('<p>markerKey</p>').insertAfter('div'); // marker for later text processing
     $('<p>markerKey</p>').insertAfter('span');
@@ -46,7 +54,15 @@ function fullText($,url,include) {
     sheet.push(['']);
     sheet.push(['Body Text']);
 
-    var bodyTxt = (include !== '') ? $(include).prop('innerText').trim() : $('body').prop('innerText').trim();
+    var bodyTxt = (include !== ['']) ? '' : $('body').prop('innerText').trim();
+    if (include !== ['']) {
+        for (let i=0; i<include.length;i++) {
+            $(include[i]).each((index, value) => {
+                bodyTxt += $(value).prop('innerText').trim();
+                bodyTxt += '\n';
+            });
+        }
+    }
 
     bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, ""); // remove lingering HTML tags
     bodyTxt = bodyTxt.replace(/markerKey\s*markerKey/g, '');
@@ -63,11 +79,11 @@ function fullText($,url,include) {
 
 }
 
-/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` or including only the selector `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
+/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` or including only the selectors in `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
 @url: URL of website to scrape; a string
-@include: sole selector to include (string)
+@include: array of selectors to include (string[])
 @exclude: array of selectors to exclude (string[]) */
-function scrape(url,include='',exclude=['']) {
+function scrape(url,include=[''],exclude=['']) {
     (async() => {
         const browser = await puppet.launch();
         const page = await browser.newPage();
@@ -90,6 +106,39 @@ function scrape(url,include='',exclude=['']) {
         await browser.close();
     })();
 }
+
+/* Formats text lines into spreadsheet rows.
+* @file: filename in directory, formatted as ./example.txt
+* @colNum: number of column in csv that holds emails (0-based counting) */
+function formatRows(file, lineLen=4) {
+    let array = fs.readFileSync(file).toString();
+    // array = array.replaceAll(',','');
+    array = array.split('\n');
+    let sheet = [];
+    let sheetStr = '';
+    let c = 1;
+    for (let i=0;i<array.length;i++) {
+            let match = array[i].match(/[a-z][A-Z]/);
+            if (match) {
+                let index = array[i].indexOf(match[0])+1;
+                array[i] = array[i].slice(0,index) + "," + array[i].slice(index);
+            }
+            if (c % lineLen !== 0) sheetStr += array[i] + ',';
+            if (c % lineLen === 0) {
+                sheetStr += array[i];
+                // console.log(c);
+                // console.log(sheetStr);
+                sheet.push(sheetStr);
+                sheetStr = '';
+            }
+        c++;
+    }
+    console.dir(sheet, {'maxArrayLength': null});
+    // console.log(sheet);
+}
+
+// formatRows('./rows.txt',2);
+scrape('https://gamesurconf.com/us/2023-speakers/',['p', '.text-left-sm'])
 
 // const divs = [".aem-GridColumn--default--12 ", ".cmp-global-header__language-selector ", ".cmp-global-header__primary-nav",".cmp-global-header__language-options"];
 // scrape('https://www.accenture.com/us-en/insights/generative-ai',divs);
@@ -128,4 +177,4 @@ function scrape(url,include='',exclude=['']) {
 
 // scrape('https://www.finops.org/introduction/what-is-finops/')
 
-scrape('https://www.cognizant.com/us/en','',['.position-relative ', '.align-items-center ', '.cog-header__ribbon-menu'])
+// scrape('https://www.cognizant.com/us/en','',['.position-relative ', '.align-items-center ', '.cog-header__ribbon-menu'])

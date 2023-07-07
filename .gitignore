@@ -7,3 +7,7 @@ test.js
 *.iml
 *.csv
 *.csv
+rows.txt
+cookies.json
+*.json
+browserless.js
