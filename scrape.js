@@ -35,6 +35,7 @@ function fullText($,url,include) {
     for (let i=0; i<linkSearches.length;i++) {
         $(linkSearches[i]).each((index, value) => {
             var link = $(value).attr("href")
+            if (!link) link = $(value).parent().attr("href")
             if (typeof link === "string") { // removes spaces
                 link = link.replaceAll('\n', '');
             }
@@ -79,7 +80,7 @@ function fullText($,url,include) {
 
 }
 
-/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` or including only the selectors in `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded.
+/* Scrapes the text content of a URL `url` using Puppeteer, excluding the selectors in `exclude` and/or including only the selectors in `include`. Will scrape all site content by default. Headers and footers can be listed in `exclude` to be excluded. No class in `include` should equal a class in `exclude` and vice versa.
 @url: URL of website to scrape; a string
 @include: array of selectors to include (string[])
 @exclude: array of selectors to exclude (string[]) */
@@ -138,7 +139,7 @@ function formatRows(file, lineLen=4) {
 }
 
 // formatRows('./rows.txt',2);
-scrape('https://gamesurconf.com/us/2023-speakers/',['p', '.text-left-sm'])
+scrape('https://reopsconf22.joinlearners.com/',['h3','h4'])
 
 // const divs = [".aem-GridColumn--default--12 ", ".cmp-global-header__language-selector ", ".cmp-global-header__primary-nav",".cmp-global-header__language-options"];
 // scrape('https://www.accenture.com/us-en/insights/generative-ai',divs);
