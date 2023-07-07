@@ -44,7 +44,7 @@ function fullText($,url,include) {
             newText = newText.replaceAll('"', "'");
             newText += '"'; // quotes to preserve commas in body text
             newText = '"'.concat(newText);
-            if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "") { // no js void links
+            if (link !== "javascript:void(0);" && link !== "javascript:void(0)" && link !== "" && link) {
                 sheet.push([newText, link]); // text/links into sheet array
             }});
     }
