@@ -28,14 +28,14 @@ function fullText($,url,include) {
     if (include !== ['']) {
         for (let i=0; i<include.length;i++) {
             linkSearches.push(include[i]+' a');
-            linkSearches.push(include[i]);
+            if ($(include[i]).attr("href")) linkSearches.push(include[i]);
         }
     } else linkSearches.push('a');
 
     for (let i=0; i<linkSearches.length;i++) {
         $(linkSearches[i]).each((index, value) => {
-            var link = $(value).attr("href")
-            if (!link) link = $(value).parent().attr("href")
+            var link = $(value).attr("href");
+            // if (!link) link = $(value).parent().attr("href")
             if (typeof link === "string") { // removes spaces
                 link = link.replaceAll('\n', '');
             }
@@ -119,19 +119,19 @@ function formatRows(file, lineLen=4) {
     let sheetStr = '';
     let c = 1;
     for (let i=0;i<array.length;i++) {
-            let match = array[i].match(/[a-z][A-Z]/);
-            if (match) {
-                let index = array[i].indexOf(match[0])+1;
-                array[i] = array[i].slice(0,index) + "," + array[i].slice(index);
-            }
-            if (c % lineLen !== 0) sheetStr += array[i] + ',';
-            if (c % lineLen === 0) {
-                sheetStr += array[i];
-                // console.log(c);
-                // console.log(sheetStr);
-                sheet.push(sheetStr);
-                sheetStr = '';
-            }
+        let match = array[i].match(/[a-z][A-Z]/);
+        if (match) {
+            let index = array[i].indexOf(match[0])+1;
+            array[i] = array[i].slice(0,index) + "," + array[i].slice(index);
+        }
+        if (c % lineLen !== 0) sheetStr += array[i] + ',';
+        if (c % lineLen === 0) {
+            sheetStr += array[i];
+            // console.log(c);
+            // console.log(sheetStr);
+            sheet.push(sheetStr);
+            sheetStr = '';
+        }
         c++;
     }
     console.dir(sheet, {'maxArrayLength': null});
@@ -139,7 +139,8 @@ function formatRows(file, lineLen=4) {
 }
 
 // formatRows('./rows.txt',2);
-scrape('https://reopsconf22.joinlearners.com/',['h3','h4'])
+// scrape('https://reopsconf22.joinlearners.com/',['h4'])
+scrape('https://www.uxcon.at/speakers-2023')
 
 // const divs = [".aem-GridColumn--default--12 ", ".cmp-global-header__language-selector ", ".cmp-global-header__primary-nav",".cmp-global-header__language-options"];
 // scrape('https://www.accenture.com/us-en/insights/generative-ai',divs);
