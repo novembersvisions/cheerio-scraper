@@ -11,3 +11,4 @@ rows.txt
 cookies.json
 *.json
 browserless.js
+/node_modules
