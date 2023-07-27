@@ -17,7 +17,7 @@ function arrayEquals(arr1,arr2) {
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
 @$: Cheerio instance with HTML content
 @url: URL of website to scrape; a string
-@include: array of selectors to exclude (string[])
+@include: array of selectors to include (string[])
 @rows: whether to format text in rows (boolean)
 @separate: separator of rows, either an int (number of rows) or string (delimiter) */
 function fullText($,url,include,rows,separate) {
