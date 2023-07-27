@@ -15,8 +15,8 @@ function arrayEquals(arr1,arr2) {
 }
 
 /* Scrapes the website of a Cheerio instance, generating a spreadsheet with all text content and links
-@url: URL of website to scrape; a string
 @$: Cheerio instance with HTML content
+@url: URL of website to scrape; a string
 @include: array of selectors to exclude (string[])
 @rows: whether to format text in rows (boolean)
 @separate: separator of rows, either an int (number of rows) or string (delimiter) */
@@ -25,9 +25,9 @@ function fullText($,url,include,rows,separate) {
     if (!rows) {
         sheet.push(['Plain Text', 'URLs'], ['Links']);
 
-        $('noscript').remove();
+        $('noscript').remove(); // remove <noscript> elements
 
-        var linkSearches = [];
+        var linkSearches = []; // search for all links
         if (include.length !== 0) {
             for (let i = 0; i < include.length; i++) {
                 linkSearches.push(include[i] + ' a');
@@ -35,7 +35,7 @@ function fullText($,url,include,rows,separate) {
             }
         } else linkSearches.push('a');
 
-        for (let i = 0; i < linkSearches.length; i++) {
+        for (let i = 0; i < linkSearches.length; i++) { // loop over links, add to csv
             $(linkSearches[i]).each((index, value) => {
                 var link = $(value).attr("href");
                 // this line gets links from elements wrapped in <a> tags
@@ -65,12 +65,13 @@ function fullText($,url,include,rows,separate) {
         sheet.push(['Body Text']);
     }
 
+    // get body text
     var bodyTxt = (include.length !== 0) ? '' : $('body').prop('innerText').trim();
     if (include.length !== 0) {
         for (let i=0; i<include.length;i++) {
             // console.log(i);
             // console.log($(include[i]).text());
-            let prevTxt;
+            let prevTxt; // track previous text to prevent duplicates
             $(include[i]).each((index, value) => {
                 let currTxt = $(value).prop('innerText').trim();
                 if (index === 0) prevTxt = currTxt;
@@ -85,6 +86,7 @@ function fullText($,url,include,rows,separate) {
         }
     }
 
+    // process body text
     bodyTxt = bodyTxt.replace(/(<([^>]+)>)/gi, ""); // remove lingering HTML tags
     bodyTxt = bodyTxt.replace(/markerKey\s*markerKey/g, 'markerKey');
     bodyTxt = bodyTxt.replace(/markerKey/g,'\n'); // separate divs
@@ -99,7 +101,7 @@ function fullText($,url,include,rows,separate) {
     }
 
     let csv;
-    if (rows) {
+    if (rows) { // format into rows based on `separate` parameter
         sheet.push(bodyTxt)
         if (typeof separate === "number") csv = formatRows(sheet, '', separate);
         else csv = formatRows(sheet, separate);
@@ -132,7 +134,7 @@ function scrape(url,include=[],exclude=[''],rows=false,separate='') {
 
         var html = await page.content();
         const $ = cheerio.load(html);
-        if (!arrayEquals(exclude,[''])) {
+        if (!arrayEquals(exclude,[''])) { // exclude selectors
             for (let i = 0; i < exclude.length; i++) {
                 $(exclude[i]).remove();
             }
@@ -170,7 +172,7 @@ function formatRows(file, separate='',lineLen=999) {
         //     let index = array[i].indexOf(match[0])+1;
         //     array[i] = array[i].slice(0,index) + "," + array[i].slice(index);
         // }
-        if (lineLen !== 999) {
+        if (lineLen !== 999) { // separate by number of rows
             // console.log(c)
             // console.log(c % lineLen === 0)
             // console.log(array[i])
@@ -181,7 +183,7 @@ function formatRows(file, separate='',lineLen=999) {
                 sheetStr = '';
             }
         c++;
-        } else {
+        } else { // separate by char delimiter
             if (array[i] !== separate) sheetStr += array[i] + ',';
             if (array[i] === separate) {
                 sheet.push(sheetStr);
